@@ -2,28 +2,34 @@ name: Continuous Integration
 
 on:
   push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'program/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'src/**'
       - 'program/**'
       - 'package.json'
-      - 'package-lock.yaml'
+      - 'package-lock.json'
       - '.github/workflows/ci.yml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    name: Continuous Integration
-    if: github.event.pull_request.draft == false
+  verify:
+    name: Verify
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout
@@ -49,3 +55,6 @@ jobs:
 
       - name: Check deps
         run: npm run check:deps
+
+      - name: Build
+        run: npm run build
