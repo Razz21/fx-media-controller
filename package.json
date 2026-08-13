@@ -1,0 +1,45 @@
+{
+  "name": "fx-media-controller",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firefox UI enhancements built around Firefox's internal MediaController API.",
+  "keywords": [
+    "autoconfig",
+    "firefox",
+    "firefox-customization",
+    "media-controller",
+    "userchrome"
+  ],
+  "homepage": "https://github.com/Razz21/fx-media-controller#readme",
+  "license": "MIT",
+  "author": "Razz21",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Razz21/fx-media-controller.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm:build:watch\" \"npm:typecheck:watch\"",
+    "build": "node build.mjs",
+    "build:watch": "node build.mjs --watch",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run check:deps",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "check:deps": "knip"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "esbuild": "^0.28.2",
+    "knip": "^6.32.2",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

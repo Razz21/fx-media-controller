@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Check deps
+        run: npm run check:deps
+
+      - name: Build
+        run: MEDIAKIT_LOG_LEVEL=error npm run build
+
+      - name: Prepare release
+        run: |
+          mkdir release
+
+          cp dist/fx-media-controller.js \
+            release/
+
+          cp styles/fx-media-controller.css \
+            release/
+
+          cp program/autoconfig.js \
+            release/
+
+          cp program/autoconfig.cfg \
+            release/
+
+          cp README.md \
+            release/
+
+          if [ -f LICENSE ]; then
+            cp LICENSE release/
+          fi
+
+      - name: Create archive
+        run: |
+          cd release
+          zip -r \
+            ../fx-media-controller-${GITHUB_REF_NAME}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          files: |
+            fx-media-controller-${{ github.ref_name }}.zip
