@@ -69,9 +69,15 @@ jobs:
           zip -r \
             ../fx-media-controller-${GITHUB_REF_NAME}.zip .
 
+      - name: Generate checksum
+        run: |
+          sha256sum fx-media-controller-${GITHUB_REF_NAME}.zip \
+            > fx-media-controller-${GITHUB_REF_NAME}.zip.sha256
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: |
             fx-media-controller-${{ github.ref_name }}.zip
+            fx-media-controller-${{ github.ref_name }}.zip.sha256
