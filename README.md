@@ -30,9 +30,9 @@ Media Controller UI on Firefox tabs, driven by Firefox's internal `MediaControll
 
 ![FX Media Controler UI Preview](/assets/preview.gif)
 
-A tab-strip Play/Pause button plus a floating popup panel. Inspired by Firefox's native media popups.
+Firefox chrome-level customization that adds media playback controls to browser tabs using Firefox's internal `MediaController`, inspired by Firefox's native tab preview popups.
 
-Built on Firefox's internal `MediaController` — the same mechanism behind `about:mediacontrol` and the OS-level media keys integration. No content script, no page injection.
+Built on Firefox's native media-control infrastructure, also used for media controls and OS-level media-key integration. No content scripts, no page injection.
 
 ## Why not a WebExtension
 
