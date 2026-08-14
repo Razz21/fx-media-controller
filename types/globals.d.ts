@@ -1,6 +1,1 @@
-declare const __MEDIAKIT_LOG_LEVEL__:
-  | 'debug'
-  | 'log'
-  | 'info'
-  | 'warn'
-  | 'error';
+declare const __FXMC_LOG_LEVEL__: 'debug' | 'log' | 'info' | 'warn' | 'error';

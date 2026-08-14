@@ -14,7 +14,8 @@ import {
 
 import { ICONS, POPUP_CLASS, POPUP_ID } from './constants';
 import type { MediaControlPopup, PopupElements, PopupTabState } from './types';
-import { createIconButton } from './utils';
+import { createIconButton, formatTime } from './utils';
+import { hasAnyCapability } from './capabilities';
 import { logger } from '../utils/logger';
 
 export class MediaPopupManager {
@@ -199,7 +200,7 @@ export class MediaPopupManager {
       if (this.elements) {
         const percent = parseFloat(slider.value) / 100;
         const currentTime = percent * this.currentDuration;
-        this.elements.currentTime.textContent = this.formatTime(currentTime);
+        this.elements.currentTime.textContent = formatTime(currentTime);
       }
     });
 
@@ -358,13 +359,6 @@ export class MediaPopupManager {
     this.isSeeking = false;
   }
 
-  private formatTime(seconds: number): string {
-    if (!isFinite(seconds) || seconds < 0) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-
   private updatePopupUI(state: MediaControllerState): boolean {
     logger.debug('[popup] updatePopupUI called with state:', state);
     if (!this.elements) {
@@ -405,14 +399,7 @@ export class MediaPopupManager {
       this.elements.playPauseSvg.innerHTML = ICONS.play;
     }
 
-    const hasControls =
-      active &&
-      (capabilities.playPause ||
-        capabilities.previousTrack ||
-        capabilities.nextTrack ||
-        capabilities.seekBackward ||
-        capabilities.seekForward ||
-        capabilities.seekTo);
+    const hasControls = active && hasAnyCapability(capabilities);
 
     logger.debug(`[popup] updatePopupUI: hasControls = ${hasControls}`);
 
@@ -430,10 +417,8 @@ export class MediaPopupManager {
       const percent = (position.position / position.duration) * 100;
       this.elements.slider.value = String(Math.min(100, Math.max(0, percent)));
       this.elements.slider.disabled = false;
-      this.elements.currentTime.textContent = this.formatTime(
-        position.position,
-      );
-      this.elements.totalTime.textContent = this.formatTime(position.duration);
+      this.elements.currentTime.textContent = formatTime(position.position);
+      this.elements.totalTime.textContent = formatTime(position.duration);
       this.currentDuration = position.duration;
       logger.debug('[popup] slider updated to', this.elements.slider.value);
     } else {

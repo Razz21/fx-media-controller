@@ -1,4 +1,5 @@
 import { PositionTracker } from './position';
+import { hasAnyCapability } from './capabilities';
 import { logger } from '../utils/logger';
 
 export interface MediaControllerState {
@@ -39,7 +40,7 @@ export interface MediaControllerBinding {
    */
   enableTracking(): void;
   /**
-   * Disables position tracking. Safe to call even if nothing was tracking.
+   * Disables position tracking. Safe to call unconditionally.
    */
   disableTracking(): void;
   /**
@@ -106,15 +107,7 @@ export function hasActiveMediaController(tab: BrowserTab): boolean {
   const controller = getController(tab);
   if (!controller?.isActive) return false;
 
-  const capabilities = getCapabilities(controller);
-  return (
-    capabilities.playPause ||
-    capabilities.previousTrack ||
-    capabilities.nextTrack ||
-    capabilities.seekBackward ||
-    capabilities.seekForward ||
-    capabilities.seekTo
-  );
+  return hasAnyCapability(getCapabilities(controller));
 }
 
 // ------------------------------------------------------------------------

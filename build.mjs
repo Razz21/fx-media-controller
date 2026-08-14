@@ -11,7 +11,7 @@ const buildOptions = {
   target: ['firefox115'],
   minifyWhitespace: true,
   define: {
-    __MEDIAKIT_LOG_LEVEL__: JSON.stringify(logLevel),
+    __FXMC_LOG_LEVEL__: JSON.stringify(logLevel),
   },
   plugins: [
     {
