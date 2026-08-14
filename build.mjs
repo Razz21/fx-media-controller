@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild';
 
-const logLevel = process.env.MEDIAKIT_LOG_LEVEL ?? 'debug';
+const logLevel = process.env.FXMC_LOG_LEVEL ?? 'debug';
 
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {

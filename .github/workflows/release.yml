@@ -38,7 +38,7 @@ jobs:
         run: npm run check:deps
 
       - name: Build
-        run: MEDIAKIT_LOG_LEVEL=error npm run build
+        run: FXMC_LOG_LEVEL=error npm run build
 
       - name: Prepare release
         run: |

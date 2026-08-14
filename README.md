@@ -202,7 +202,7 @@ npm run check:deps  # knip
 npm run build       # node build.mjs -> dist/
 ```
 
-`npm run check` runs typecheck, lint, format:check, and check:deps together. CI (`.github/workflows/release.yml`) runs on Node 24 and builds with `MEDIAKIT_LOG_LEVEL=error`.
+`npm run check` runs typecheck, lint, format:check, and check:deps together. CI (`.github/workflows/release.yml`) runs on Node 24 and builds with `FXMC_LOG_LEVEL=error`.
 
 ## Compatibility
 
