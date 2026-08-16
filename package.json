@@ -32,6 +32,7 @@
     "check:deps": "knip"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.0",
     "concurrently": "^10.0.4",
     "esbuild": "^0.28.2",
     "knip": "^6.32.2",
