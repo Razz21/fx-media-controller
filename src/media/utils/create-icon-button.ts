@@ -11,7 +11,6 @@ export function createIconButton(
   btn.setAttribute('aria-label', ariaLabel);
   btn.setAttribute('label', '');
 
-  // Create SVG element
   const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('width', '24');
@@ -20,7 +19,6 @@ export function createIconButton(
 
   btn.appendChild(svg);
 
-  // Block mousedown propagation to prevent popup from closing
   btn.addEventListener('mousedown', (e) => e.stopPropagation());
 
   return { button: btn, svg };

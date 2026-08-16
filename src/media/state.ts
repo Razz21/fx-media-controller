@@ -10,20 +10,38 @@ type Listener = (state: MediaControllerState) => void;
 export class TabMediaState {
   private binding: MediaControllerBinding | null = null;
   private listeners = new Set<Listener>();
+  private tickListeners = new Set<Listener>();
   private tab: BrowserTab;
 
   constructor(tab: BrowserTab) {
     this.tab = tab;
-    this.binding = bindMediaController(tab, (state) => this.notify(state));
+    this.binding = bindMediaController(
+      tab,
+      (state) => this.notify(state),
+      (state) => this.notifyTick(state),
+    );
   }
 
-  subscribe(listener: Listener): () => void {
+  /**
+   * @param listener Structural updates (active/playing/capabilities/
+   *   metadata, or a position snapshot tied to a real event). Always
+   *   fired;
+   * @param onPositionTick Optional. Per-animation-frame position-only
+   *   updates while playing and tracked.
+   */
+  subscribe(listener: Listener, onPositionTick?: Listener): () => void {
     this.listeners.add(listener);
+    if (onPositionTick) {
+      this.tickListeners.add(onPositionTick);
+    }
     if (this.binding) {
       this.binding.update();
     }
     return () => {
       this.listeners.delete(listener);
+      if (onPositionTick) {
+        this.tickListeners.delete(onPositionTick);
+      }
     };
   }
 
@@ -61,10 +79,21 @@ export class TabMediaState {
     }
   }
 
+  private notifyTick(state: MediaControllerState): void {
+    for (const listener of this.tickListeners) {
+      try {
+        listener(state);
+      } catch (e) {
+        logger.error(e);
+      }
+    }
+  }
+
   destroy(): void {
     this.binding?.destroy();
     this.binding = null;
     this.listeners.clear();
+    this.tickListeners.clear();
   }
 }
 

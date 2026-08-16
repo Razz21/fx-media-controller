@@ -18,7 +18,7 @@ export interface MediaControlPopup extends XULElement {
 export interface PopupElements {
   previous: XULElement;
   playPause: XULElement;
-  playPauseSvg: SVGElement; // store the SVG element inside play/pause
+  playPauseSvg: SVGElement;
   next: XULElement;
   seekBack: XULElement;
   seekFwd: XULElement;

@@ -90,11 +90,7 @@ function getCapabilities(
 /**
  * Synchronous check for whether a tab currently has controllable media -
  * i.e. whether it's worth building any popup/subscription machinery for a
- * hover on this tab at all. Mirrors the `hasControls` gate popup.ts applies
- * to a pushed MediaControllerState (active && at least one capability), but
- * evaluated directly off the MediaController with no binding, no
- * TabMediaState, no async push. Safe to call from a mouseenter handler
- * before deciding whether to open anything.
+ * hover on this tab at all.
  *
  * Note: reading tab.linkedBrowser.browsingContext.mediaController is not
  * side-effect-free - it lazily creates a MediaController on the underlying
@@ -116,6 +112,7 @@ export function hasActiveMediaController(tab: BrowserTab): boolean {
 export function bindMediaController(
   tab: BrowserTab,
   onStateChange: (state: MediaControllerState) => void,
+  onPositionTick: (state: MediaControllerState) => void,
 ): MediaControllerBinding {
   const win = (tab.ownerDocument?.defaultView ||
     tab.ownerGlobal ||
@@ -124,9 +121,7 @@ export function bindMediaController(
   let isDestroyed = false;
 
   // Gates position tracking (RAF interpolation) ONLY. Does not gate
-  // active/playing/capabilities/metadata notifications - the tab button
-  // subscribes to this same binding and needs those regardless of whether
-  // any consumer is currently tracking position. Defaults to false: a
+  // active/playing/capabilities/metadata notifications. Defaults to false: a
   // freshly-created binding (e.g. one created just so the tab button has
   // an icon to show) must never start the RAF loop on its own.
   let trackingEnabled = false;
@@ -143,18 +138,26 @@ export function bindMediaController(
   };
   let cachedMetadata: MediaMetadataInit | null = null;
 
-  // PositionTracker itself gates every onUpdate() call behind its own
-  // `paused` flag (see pushUpdate()/tick() in position.ts) - that's the
-  // one gate that decides whether a tick's data should reach the UI.
-  // pushFullState() below gates on isDestroyed on its own. Checking
-  // either condition again here would just be the same guard duplicated
-  // in a second place that can drift out of sync with the first - this
-  // callback exists to forward data, not to re-decide whether to.
+  function buildState(
+    positionOverride?: { duration: number; position: number } | null,
+  ): MediaControllerState {
+    return {
+      active: cachedActive,
+      playing: cachedPlaying,
+      capabilities: cachedCapabilities,
+      metadata: cachedMetadata,
+      position: positionOverride || null,
+    };
+  }
+
   const tracker = new PositionTracker(
     win,
     (pos: { duration: number; position: number }) => {
-      logger.debug('[controller] PositionTracker callback with pos:', pos);
+      logger.debug('[controller] PositionTracker onUpdate with pos:', pos);
       pushFullState(pos);
+    },
+    (pos: { duration: number; position: number }) => {
+      pushPositionTick(pos);
     },
   );
 
@@ -162,15 +165,17 @@ export function bindMediaController(
     positionOverride?: { duration: number; position: number } | null,
   ): void {
     if (isDestroyed) return;
-    const state: MediaControllerState = {
-      active: cachedActive,
-      playing: cachedPlaying,
-      capabilities: cachedCapabilities,
-      metadata: cachedMetadata,
-      position: positionOverride || null,
-    };
+    const state = buildState(positionOverride);
     logger.debug('[controller] pushFullState with position:', positionOverride);
     onStateChange(state);
+  }
+
+  function pushPositionTick(positionOverride: {
+    duration: number;
+    position: number;
+  }): void {
+    if (isDestroyed) return;
+    onPositionTick(buildState(positionOverride));
   }
 
   function refreshState(event?: PositionStateEvent): void {

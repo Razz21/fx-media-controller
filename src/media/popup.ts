@@ -212,10 +212,8 @@ export class MediaPopupManager {
       if (!duration || duration <= 0) return;
       const seekTime = (val / 100) * duration;
 
-      // Use the action with capability check
       seekToPosition(this.state.tab, seekTime);
 
-      // Order: release guard, prime position, re‑enable tracking
       this.isSeeking = false;
       this.state.mediaState.primeSeek(seekTime);
       this.state.mediaState.enableTracking();
@@ -324,20 +322,6 @@ export class MediaPopupManager {
     }, delay);
   }
 
-  /**
-   * Tears down the currently-active tab's subscription (if any) and closes
-   * the panel, without touching hoveredTab/mouseOverPopup/hideTimer. This
-   * is the shared bit between "switching to a different tab" (hoveredTab
-   * is about to be reassigned by the caller) and "hiding for real"
-   * (hidePopup() below, which additionally clears hover/hide state).
-   *
-   * Guards on `state !== 'closed'` rather than `state === 'open'`: opening
-   * a XUL panel is asynchronous (closed -> showing -> open), and this can
-   * run while the panel is still `'showing'` if the mouse leaves the tab
-   * fast enough. Gating on `=== 'open'` silently no-ops in that case and
-   * leaves an empty popup stuck open - confirmed via debug logs, not
-   * assumed. hidePopup() is called for every non-closed state instead.
-   */
   private teardownActiveTab(): void {
     if (this.state) {
       this.state.mediaState.disableTracking();
@@ -359,15 +343,15 @@ export class MediaPopupManager {
     this.isSeeking = false;
   }
 
-  private updatePopupUI(state: MediaControllerState): boolean {
-    logger.debug('[popup] updatePopupUI called with state:', state);
+  private updateStructuralUI(state: MediaControllerState): boolean {
+    logger.debug('[popup] updateStructuralUI called with state:', state);
     if (!this.elements) {
-      logger.debug('[popup] updatePopupUI: elements null');
+      logger.debug('[popup] updateStructuralUI: elements null');
       return false;
     }
 
     const { capabilities, playing, active, metadata, position } = state;
-    logger.debug('[popup] updatePopupUI state:', {
+    logger.debug('[popup] updateStructuralUI state:', {
       active,
       playing,
       capabilities,
@@ -401,7 +385,7 @@ export class MediaPopupManager {
 
     const hasControls = active && hasAnyCapability(capabilities);
 
-    logger.debug(`[popup] updatePopupUI: hasControls = ${hasControls}`);
+    logger.debug(`[popup] updateStructuralUI: hasControls = ${hasControls}`);
 
     this.elements.seekBack.disabled =
       !hasControls || !capabilities.seekBackward;
@@ -411,9 +395,27 @@ export class MediaPopupManager {
     this.elements.next.disabled = !hasControls || !capabilities.nextTrack;
     this.elements.seekFwd.disabled = !hasControls || !capabilities.seekForward;
 
+    this.applyPositionToDOM(hasControls, capabilities.seekTo, position);
+
+    return hasControls;
+  }
+
+  private updatePositionUI(state: MediaControllerState): void {
+    if (!this.elements) return;
+    const { active, capabilities, position } = state;
+    const hasControls = active && hasAnyCapability(capabilities);
+    this.applyPositionToDOM(hasControls, capabilities.seekTo, position);
+  }
+
+  private applyPositionToDOM(
+    hasControls: boolean,
+    seekTo: boolean,
+    position: { duration: number; position: number } | null,
+  ): void {
+    if (!this.elements) return;
     const sliderEnabled =
-      hasControls && capabilities.seekTo && position && position.duration > 0;
-    if (sliderEnabled) {
+      hasControls && seekTo && position && position.duration > 0;
+    if (sliderEnabled && position) {
       const percent = (position.position / position.duration) * 100;
       this.elements.slider.value = String(Math.min(100, Math.max(0, percent)));
       this.elements.slider.disabled = false;
@@ -427,8 +429,6 @@ export class MediaPopupManager {
       this.elements.currentTime.textContent = '0:00';
       this.elements.totalTime.textContent = '0:00';
     }
-
-    return hasControls;
   }
 
   private showPopupForTab(tab: BrowserTab): void {
@@ -446,18 +446,15 @@ export class MediaPopupManager {
     const state = getTabMediaState(tab);
     logger.debug('[popup] got TabMediaState for tab');
 
-    const unsubscribe = state.subscribe((mediaState) => {
+    const onStructuralChange = (mediaState: MediaControllerState): void => {
       if (this.isSeeking) {
-        logger.debug('[popup] subscription push ignored (isSeeking)');
+        logger.debug('[popup] structural push ignored (isSeeking)');
         return;
       }
 
-      logger.debug(
-        '[popup] subscription callback fired with state:',
-        mediaState,
-      );
+      logger.debug('[popup] structural callback fired with state:', mediaState);
       try {
-        const hasControls = this.updatePopupUI(mediaState);
+        const hasControls = this.updateStructuralUI(mediaState);
         if (hasControls) {
           logger.debug(
             '[popup] hasControls = true, resuming binding and opening popup',
@@ -493,9 +490,16 @@ export class MediaPopupManager {
           }
         }
       } catch (err) {
-        logger.error('[popup] subscription callback error:', err);
+        logger.error('[popup] structural callback error:', err);
       }
-    });
+    };
+
+    const onPositionTick = (mediaState: MediaControllerState): void => {
+      if (this.isSeeking) return;
+      this.updatePositionUI(mediaState);
+    };
+
+    const unsubscribe = state.subscribe(onStructuralChange, onPositionTick);
 
     this.state = {
       tab,
@@ -516,12 +520,6 @@ export class MediaPopupManager {
     this.hoveredTab = tab;
     this.cancelHide();
 
-    // Decide synchronously, off the MediaController directly, whether this
-    // tab is worth opening anything for - don't build subscription/panel
-    // machinery for a hover just to tear it down again once an async push
-    // tells us there was nothing to show. Also means leaving a media tab
-    // for a non-media tab hides immediately instead of waiting on that
-    // async round trip.
     if (!hasActiveMediaController(tab)) {
       logger.debug('[popup] tab has no active media, not opening popup');
       this.teardownActiveTab();
