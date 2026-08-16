@@ -14,9 +14,66 @@ import {
 
 import { ICONS, POPUP_CLASS, POPUP_ID } from './constants';
 import type { MediaControlPopup, PopupElements, PopupTabState } from './types';
-import { createIconButton, formatTime } from './utils';
+import { createElementFactory, createIconButton, formatTime } from './utils';
 import { hasAnyCapability } from './capabilities';
 import { logger } from '../utils/logger';
+
+const XHTML_TEXT = {
+  noMedia: 'No media',
+  zeroTime: '0:00',
+} as const;
+
+type Capabilities = MediaControllerState['capabilities'];
+
+const CONTROL_BUTTONS: Array<{
+  elementKey: 'seekBack' | 'previous' | 'playPause' | 'next' | 'seekFwd';
+  className: string;
+  icon: string;
+  label: string;
+  capability: keyof Capabilities;
+  action: (tab: BrowserTab) => void;
+}> = [
+  {
+    elementKey: 'seekBack',
+    className: 'tab-media-control-button tab-media-control-seekback',
+    icon: ICONS.seekBack,
+    label: 'Seek backward',
+    capability: 'seekBackward',
+    action: seekBackward,
+  },
+  {
+    elementKey: 'previous',
+    className: 'tab-media-control-button tab-media-control-previous',
+    icon: ICONS.previous,
+    label: 'Previous track',
+    capability: 'previousTrack',
+    action: previousTrack,
+  },
+  {
+    elementKey: 'playPause',
+    className: 'tab-media-control-button tab-media-control-playpause',
+    icon: ICONS.play,
+    label: 'Play/Pause',
+    capability: 'playPause',
+    action: toggleMediaController,
+  },
+  {
+    elementKey: 'next',
+    className: 'tab-media-control-button tab-media-control-next',
+    icon: ICONS.next,
+    label: 'Next track',
+    capability: 'nextTrack',
+    action: nextTrack,
+  },
+  {
+    elementKey: 'seekFwd',
+    className: 'tab-media-control-button tab-media-control-seekfwd',
+    icon: ICONS.seekFwd,
+    label: 'Seek forward',
+    capability: 'seekForward',
+    action: seekForward,
+  },
+];
 
 export class MediaPopupManager {
   private window: BrowserWindow;
@@ -48,7 +105,56 @@ export class MediaPopupManager {
 
     logger.debug('[popup] ensurePopup: creating popup');
     const doc = this.document;
+    const h = createElementFactory(doc);
 
+    const popup = this.createPopupPanel(doc);
+    const interactiveDiv = h('div', 'tab-preview-content-interactive');
+    const mainDiv = h(
+      'div',
+      'tab-preview-content-main tab-media-control-content',
+    );
+
+    const { metaDiv, img, titleSpan, artistSpan } =
+      this.buildMetadataSection(h);
+    const { controlsDiv, controlEls } = this.buildControlsSection(doc, h);
+    const { progressDiv, currentTimeSpan, totalTimeSpan, slider } =
+      this.buildProgressSection(h);
+
+    mainDiv.append(metaDiv, controlsDiv, progressDiv);
+
+    const { infoButton, infoPopover } = this.buildInfoSection(doc, h);
+
+    interactiveDiv.append(mainDiv, infoButton, infoPopover);
+    popup.appendChild(interactiveDiv);
+
+    this.infoButton = infoButton;
+    this.infoPopoverEl = infoPopover;
+
+    this.wirePopupChromeEvents(popup);
+
+    const popupSet = doc.getElementById('mainPopupSet');
+    if (!popupSet) throw new Error('Firefox #mainPopupSet not found');
+    popupSet.appendChild(popup);
+
+    this.popup = popup;
+    this.elements = {
+      previous: controlEls.previous.button,
+      playPause: controlEls.playPause.button,
+      playPauseSvg: controlEls.playPause.svg,
+      next: controlEls.next.button,
+      seekBack: controlEls.seekBack.button,
+      seekFwd: controlEls.seekFwd.button,
+      title: titleSpan,
+      artist: artistSpan,
+      artwork: img,
+      slider,
+      currentTime: currentTimeSpan,
+      totalTime: totalTimeSpan,
+    };
+    logger.debug('[popup] ensurePopup: popup created and appended');
+  }
+
+  private createPopupPanel(doc: ChromeDocument): MediaControlPopup {
     const popup = doc.createXULElement('panel') as MediaControlPopup;
     popup.id = POPUP_ID;
     popup.className = POPUP_CLASS;
@@ -60,126 +166,89 @@ export class MediaPopupManager {
     popup.setAttribute('flip', 'both');
     popup.setAttribute('side', 'top');
     popup.setAttribute('position', 'bottomleft topleft');
+    return popup;
+  }
 
-    const interactiveDiv = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    );
-    interactiveDiv.className = 'tab-preview-content-interactive';
+  private buildMetadataSection(h: ReturnType<typeof createElementFactory>): {
+    metaDiv: HTMLElement;
+    img: HTMLImageElement;
+    titleSpan: HTMLElement;
+    artistSpan: HTMLElement;
+  } {
+    const metaDiv = h('div', 'tab-media-metadata');
 
-    const mainDiv = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-    mainDiv.className = 'tab-preview-content-main tab-media-control-content';
-
-    // Metadata area
-    const metaDiv = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-    metaDiv.className = 'tab-media-metadata';
-
-    const img = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'img',
-    ) as HTMLImageElement;
-    img.className = 'tab-media-artwork';
+    const img = h('img', 'tab-media-artwork');
     img.hidden = true;
     img.setAttribute('alt', '');
     img.addEventListener('error', () => {
       img.hidden = true;
     });
 
-    const textContainer = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    );
-    textContainer.className = 'tab-media-text-container';
+    const textContainer = h('div', 'tab-media-text-container');
 
-    const titleSpan = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'span',
-    );
-    titleSpan.className = 'tab-media-title';
-    titleSpan.textContent = 'No media';
+    const titleSpan = h('span', 'tab-media-title');
+    titleSpan.textContent = XHTML_TEXT.noMedia;
 
-    const artistSpan = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'span',
-    );
-    artistSpan.className = 'tab-media-artist';
+    const artistSpan = h('span', 'tab-media-artist');
     artistSpan.textContent = '';
 
     textContainer.append(titleSpan, artistSpan);
     metaDiv.append(img, textContainer);
 
-    const controlsDiv = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    );
-    controlsDiv.className = 'tab-media-controls';
+    return { metaDiv, img, titleSpan, artistSpan };
+  }
 
-    const seekBack = createIconButton(
-      doc,
-      'tab-media-control-button tab-media-control-seekback',
-      ICONS.seekBack,
-      'Seek backward',
-    );
-    const prev = createIconButton(
-      doc,
-      'tab-media-control-button tab-media-control-previous',
-      ICONS.previous,
-      'Previous track',
-    );
-    const play = createIconButton(
-      doc,
-      'tab-media-control-button tab-media-control-playpause',
-      ICONS.play,
-      'Play/Pause',
-    );
-    const next = createIconButton(
-      doc,
-      'tab-media-control-button tab-media-control-next',
-      ICONS.next,
-      'Next track',
-    );
-    const seekFwd = createIconButton(
-      doc,
-      'tab-media-control-button tab-media-control-seekfwd',
-      ICONS.seekFwd,
-      'Seek forward',
-    );
+  private buildControlsSection(
+    doc: ChromeDocument,
+    h: ReturnType<typeof createElementFactory>,
+  ): {
+    controlsDiv: HTMLElement;
+    controlEls: Record<
+      (typeof CONTROL_BUTTONS)[number]['elementKey'],
+      { button: XULElement; svg: SVGElement }
+    >;
+  } {
+    const controlsDiv = h('div', 'tab-media-controls');
 
-    controlsDiv.append(
-      seekBack.button,
-      prev.button,
-      play.button,
-      next.button,
-      seekFwd.button,
-    );
+    const controlEls = {} as Record<
+      (typeof CONTROL_BUTTONS)[number]['elementKey'],
+      { button: XULElement; svg: SVGElement }
+    >;
 
-    // Progress area
-    const progressDiv = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    );
-    progressDiv.className = 'tab-media-progress';
+    for (const cfg of CONTROL_BUTTONS) {
+      const built = createIconButton(doc, cfg.className, cfg.icon, cfg.label);
+      built.button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!this.state) return;
+        try {
+          cfg.action(this.state.tab);
+        } catch (err) {
+          logger.error(err);
+        }
+      });
+      controlEls[cfg.elementKey] = built;
+      controlsDiv.appendChild(built.button);
+    }
 
-    const currentTimeSpan = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'span',
-    );
-    currentTimeSpan.classList.add('tab-media-time', 'tab-media-time-current');
-    currentTimeSpan.textContent = '0:00';
+    return { controlsDiv, controlEls };
+  }
 
-    const totalTimeSpan = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'span',
-    );
-    totalTimeSpan.classList.add('tab-media-time', 'tab-media-time-total');
-    totalTimeSpan.textContent = '0:00';
+  private buildProgressSection(h: ReturnType<typeof createElementFactory>): {
+    progressDiv: HTMLElement;
+    currentTimeSpan: HTMLElement;
+    totalTimeSpan: HTMLElement;
+    slider: HTMLInputElement;
+  } {
+    const progressDiv = h('div', 'tab-media-progress');
 
-    const slider = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'input',
-    ) as HTMLInputElement;
+    const currentTimeSpan = h('span', 'tab-media-time tab-media-time-current');
+    currentTimeSpan.textContent = XHTML_TEXT.zeroTime;
+
+    const totalTimeSpan = h('span', 'tab-media-time tab-media-time-total');
+    totalTimeSpan.textContent = XHTML_TEXT.zeroTime;
+
+    const slider = h('input', 'tab-media-slider');
     slider.type = 'range';
-    slider.className = 'tab-media-slider';
     slider.min = '0';
     slider.max = '100';
     slider.value = '0';
@@ -225,8 +294,13 @@ export class MediaPopupManager {
 
     progressDiv.append(currentTimeSpan, slider, totalTimeSpan);
 
-    mainDiv.append(metaDiv, controlsDiv, progressDiv);
+    return { progressDiv, currentTimeSpan, totalTimeSpan, slider };
+  }
 
+  private buildInfoSection(
+    doc: ChromeDocument,
+    h: ReturnType<typeof createElementFactory>,
+  ): { infoButton: XULElement; infoPopover: HTMLElement } {
     const info = createIconButton(
       doc,
       'tab-media-control-button tab-media-info-button',
@@ -238,29 +312,16 @@ export class MediaPopupManager {
       this.toggleInfoPopover();
     });
 
-    const infoPopover = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    ) as HTMLElement;
-    infoPopover.className = 'tab-media-info-popover';
+    const infoPopover = h('div', 'tab-media-info-popover');
     infoPopover.hidden = true;
 
-    const infoName = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-    infoName.className = 'tab-media-info-name';
+    const infoName = h('div', 'tab-media-info-name');
     infoName.textContent = __FXMC_PROJECT_NAME__;
 
-    const infoVersion = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'div',
-    );
-    infoVersion.className = 'tab-media-info-version';
+    const infoVersion = h('div', 'tab-media-info-version');
     infoVersion.textContent = `Version: ${__FXMC_VERSION__}`;
 
-    const infoLink = doc.createElementNS(
-      'http://www.w3.org/1999/xhtml',
-      'a',
-    ) as HTMLAnchorElement;
-    infoLink.className = 'tab-media-info-link';
+    const infoLink = h('a', 'tab-media-info-link');
     infoLink.textContent = 'View on GitHub';
     infoLink.href = __FXMC_REPO_URL__ || '#';
     infoLink.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -277,12 +338,10 @@ export class MediaPopupManager {
 
     infoPopover.append(infoName, infoVersion, infoLink);
 
-    interactiveDiv.append(mainDiv, info.button, infoPopover);
-    popup.appendChild(interactiveDiv);
+    return { infoButton: info.button, infoPopover };
+  }
 
-    this.infoButton = info.button;
-    this.infoPopoverEl = infoPopover;
-
+  private wirePopupChromeEvents(popup: MediaControlPopup): void {
     popup.addEventListener('mouseenter', () => {
       logger.debug('[popup] popup mouseenter');
       this.mouseOverPopup = true;
@@ -300,73 +359,6 @@ export class MediaPopupManager {
       if (this.infoPopoverEl?.contains(target)) return;
       this.closeInfoPopover();
     });
-
-    seekBack.button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!this.state) return;
-      try {
-        seekBackward(this.state.tab);
-      } catch (err) {
-        logger.error(err);
-      }
-    });
-    prev.button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!this.state) return;
-      try {
-        previousTrack(this.state.tab);
-      } catch (err) {
-        logger.error(err);
-      }
-    });
-    play.button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!this.state) return;
-      try {
-        toggleMediaController(this.state.tab);
-      } catch (err) {
-        logger.error(err);
-      }
-    });
-    next.button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!this.state) return;
-      try {
-        nextTrack(this.state.tab);
-      } catch (err) {
-        logger.error(err);
-      }
-    });
-    seekFwd.button.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!this.state) return;
-      try {
-        seekForward(this.state.tab);
-      } catch (err) {
-        logger.error(err);
-      }
-    });
-
-    const popupSet = doc.getElementById('mainPopupSet');
-    if (!popupSet) throw new Error('Firefox #mainPopupSet not found');
-    popupSet.appendChild(popup);
-
-    this.popup = popup;
-    this.elements = {
-      previous: prev.button,
-      playPause: play.button,
-      playPauseSvg: play.svg,
-      next: next.button,
-      seekBack: seekBack.button,
-      seekFwd: seekFwd.button,
-      title: titleSpan,
-      artist: artistSpan,
-      artwork: img,
-      slider,
-      currentTime: currentTimeSpan,
-      totalTime: totalTimeSpan,
-    };
-    logger.debug('[popup] ensurePopup: popup created and appended');
   }
 
   private cancelHide(): void {
@@ -386,13 +378,16 @@ export class MediaPopupManager {
     }, delay);
   }
 
+  private disposeMediaState(): void {
+    if (!this.state) return;
+    this.state.mediaState.disableTracking();
+    this.state.unsubscribe();
+    this.state = null;
+  }
+
   private teardownActiveTab(): void {
     this.closeInfoPopover();
-    if (this.state) {
-      this.state.mediaState.disableTracking();
-      this.state.unsubscribe();
-      this.state = null;
-    }
+    this.disposeMediaState();
     if (this.popup && this.popup.state !== 'closed') {
       this.popup.hidePopup();
       logger.debug('[popup] panel hidden (teardown)');
@@ -456,29 +451,21 @@ export class MediaPopupManager {
         this.elements.artwork.hidden = true;
       }
     } else {
-      this.elements.title.textContent = 'No media';
+      this.elements.title.textContent = XHTML_TEXT.noMedia;
       this.elements.artist.textContent = '';
       this.elements.artist.hidden = true;
       this.elements.artwork.hidden = true;
     }
 
-    if (playing) {
-      this.elements.playPauseSvg.innerHTML = ICONS.pause;
-    } else {
-      this.elements.playPauseSvg.innerHTML = ICONS.play;
-    }
+    this.elements.playPauseSvg.innerHTML = playing ? ICONS.pause : ICONS.play;
 
     const hasControls = active && hasAnyCapability(capabilities);
-
     logger.debug(`[popup] updateStructuralUI: hasControls = ${hasControls}`);
 
-    this.elements.seekBack.disabled =
-      !hasControls || !capabilities.seekBackward;
-    this.elements.previous.disabled =
-      !hasControls || !capabilities.previousTrack;
-    this.elements.playPause.disabled = !hasControls || !capabilities.playPause;
-    this.elements.next.disabled = !hasControls || !capabilities.nextTrack;
-    this.elements.seekFwd.disabled = !hasControls || !capabilities.seekForward;
+    for (const cfg of CONTROL_BUTTONS) {
+      this.elements[cfg.elementKey].disabled =
+        !hasControls || !capabilities[cfg.capability];
+    }
 
     this.applyPositionToDOM(hasControls, capabilities.seekTo, position);
 
@@ -507,12 +494,11 @@ export class MediaPopupManager {
       this.elements.currentTime.textContent = formatTime(position.position);
       this.elements.totalTime.textContent = formatTime(position.duration);
       this.currentDuration = position.duration;
-      logger.debug('[popup] slider updated to', this.elements.slider.value);
     } else {
       this.elements.slider.value = '0';
       this.elements.slider.disabled = true;
-      this.elements.currentTime.textContent = '0:00';
-      this.elements.totalTime.textContent = '0:00';
+      this.elements.currentTime.textContent = XHTML_TEXT.zeroTime;
+      this.elements.totalTime.textContent = XHTML_TEXT.zeroTime;
     }
   }
 
@@ -624,9 +610,7 @@ export class MediaPopupManager {
   onTabClose(tab: BrowserTab): void {
     logger.debug('[popup] onTabClose for tab', tab);
     if (this.state && this.state.tab === tab) {
-      this.state.mediaState.disableTracking();
-      this.state.unsubscribe();
-      this.state = null;
+      this.disposeMediaState();
       this.hoveredTab = null;
       this.hidePopup();
     }
@@ -636,11 +620,7 @@ export class MediaPopupManager {
   destroy(): void {
     logger.debug('[popup] destroy');
     this.cancelHide();
-    if (this.state) {
-      this.state.mediaState.disableTracking();
-      this.state.unsubscribe();
-      this.state = null;
-    }
+    this.disposeMediaState();
     this.hoveredTab = null;
     this.mouseOverPopup = false;
     this.isSeeking = false;
