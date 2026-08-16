@@ -35,31 +35,42 @@
    Main Media Popup Panel
    ============================================== */
 .tab-media-control-popup {
-  /* Override Firefox’s internal panel variables */
   --panel-background: transparent !important;
   --panel-border-color: transparent !important;
   --panel-shadow: none !important;
   --panel-padding: 0px !important;
 
-  /* Remove native appearance so we can style freely */
   -moz-appearance: none !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
+
+  --media-fg: var(--arrowpanel-color, #f9f9fa);
+  --media-fg-dim: var(--arrowpanel-dimmed, #b1b1b3);
+  --media-bg-muted: var(--arrowpanel-dimmed, #5a5a66);
+  --media-bg-panel: var(--arrowpanel-background, #2b2a33);
+
+  --media-hover: rgba(255, 255, 255, 0.25);
+  --media-active: rgba(255, 255, 255, 0.18);
+  --media-playpause-hover: rgba(255, 255, 255, 0.2);
+  --media-playpause-active: rgba(255, 255, 255, 0.28);
+  --media-popover-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --media-slider-track: var(--media-bg-muted);
 }
 
 /* ==============================================
    Content
    ============================================== */
 .tab-media-control-popup .tab-preview-content-interactive {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 10px 14px;
+  padding-block-end: 4px;
   background: transparent;
   border-radius: 8px;
   width: 288px;
-  padding-block-end: 4px;
 }
 
 /* ==============================================
@@ -79,7 +90,7 @@
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
-  background: var(--arrowpanel-dimmed, #5a5a66);
+  background: var(--media-bg-muted);
 }
 
 .tab-media-artwork[hidden] {
@@ -95,8 +106,8 @@
   width: 100%;
   height: 100%;
   font-size: 24px;
-  color: var(--arrowpanel-color, #f9f9fa);
-  background: var(--arrowpanel-dimmed, #5a5a66);
+  color: var(--media-fg);
+  background: var(--media-bg-muted);
   border-radius: 6px;
 }
 
@@ -108,24 +119,24 @@
   min-width: 0;
 }
 
-.tab-media-title {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--arrowpanel-color, #f9f9fa);
+.tab-media-title,
+.tab-media-artist {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.tab-media-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--media-fg);
 }
 
 .tab-media-artist {
   font-size: 11px;
   font-weight: 400;
-  line-height: 1.3;
-  color: var(--arrowpanel-dimmed, #b1b1b3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--media-fg-dim);
 }
 
 .tab-media-artist[hidden] {
@@ -145,6 +156,7 @@
 
 .tab-media-control-button {
   --tab-media-control-button-shadow: 3px;
+
   -moz-appearance: none !important;
   appearance: none !important;
   background: transparent;
@@ -156,7 +168,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--arrowpanel-color, #f9f9fa);
+  color: var(--media-fg);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -170,10 +182,6 @@
   pointer-events: none;
 }
 
-.tab-media-control-button:hover {
-  box-shadow: 0px 0px var(--tab-media-control-button-shadow, 3px) 0px #0001;
-}
-
 .tab-media-control-button .button-text {
   display: flex;
   align-items: center;
@@ -182,12 +190,16 @@
   height: 100%;
 }
 
+.tab-media-control-button:hover {
+  box-shadow: 0px 0px var(--tab-media-control-button-shadow, 3px) 0px #0001;
+}
+
 .tab-media-control-button:not(:disabled):not(:active):hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--media-hover);
 }
 
 .tab-media-control-button:active {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--media-active);
 }
 
 .tab-media-control-button:disabled {
@@ -198,25 +210,26 @@
 
 .tab-media-control-playpause {
   --tab-media-control-button-shadow: 6px;
+
   width: 40px;
   height: 40px;
   font-size: 20px;
-  background: var(--arrowpanel-dimmed, #5a5a66);
-  color: var(--arrowpanel-color, #f9f9fa);
-  border-radius: 50%;
   margin-inline: 4px;
+  border-radius: 50%;
+  background: var(--media-bg-muted);
+  color: var(--media-fg);
 }
 
 .tab-media-control-playpause:not(:disabled):not(:active):hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--media-playpause-hover);
 }
 
 .tab-media-control-playpause:active {
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--media-playpause-active);
 }
 
 .tab-media-control-playpause:disabled {
-  background: var(--arrowpanel-dimmed, #5a5a66);
+  background: var(--media-bg-muted);
   opacity: 0.4;
 }
 
@@ -240,7 +253,7 @@
 .tab-media-time {
   font-size: 12px;
   font-weight: 600;
-  color: var(--arrowpanel-dimmed, #f9f9fa);
+  color: var(--media-fg-dim);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   text-align: center;
@@ -260,14 +273,14 @@
 }
 
 .tab-media-slider::-moz-range-track {
-  background: var(--arrowpanel-dimmed, #5a5a66);
+  background: var(--media-slider-track);
   height: 4px;
   border-radius: 2px;
   border: none;
 }
 
 .tab-media-slider::-moz-range-progress {
-  background: var(--arrowpanel-color, #f9f9fa);
+  background: var(--media-fg);
   height: 4px;
   border-radius: 2px;
 }
@@ -278,8 +291,8 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--arrowpanel-color, #f9f9fa);
-  border: 2px solid var(--arrowpanel-background, #2b2a33);
+  background: var(--media-fg);
+  border: 2px solid var(--media-bg-panel);
   cursor: pointer;
 }
 
@@ -288,30 +301,23 @@
   pointer-events: none;
 }
 
-.tab-media-slider:disabled::-moz-range-thumb {
-  background: var(--arrowpanel-dimmed, #5a5a66);
-}
-
+.tab-media-slider:disabled::-moz-range-thumb,
 .tab-media-slider:disabled::-moz-range-progress {
-  background: var(--arrowpanel-dimmed, #5a5a66);
+  background: var(--media-bg-muted);
 }
 
 /* ==============================================
    Info Button + Popover
    ============================================== */
-.tab-preview-content-interactive {
-  position: relative;
-}
-
 .tab-media-info-button {
   position: absolute;
   top: 6px;
   right: 6px;
   width: 20px;
   height: 20px;
+  padding: 1px;
   opacity: 0.55;
   transition: opacity 0.2s;
-  padding: 1px;
 }
 
 .tab-media-info-button svg {
@@ -331,8 +337,8 @@
   min-width: 160px;
   padding: 10px 12px;
   border-radius: 8px;
-  background: var(--arrowpanel-background, #2b2a33);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  background: var(--media-bg-panel);
+  box-shadow: var(--media-popover-shadow);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -345,18 +351,18 @@
 .tab-media-info-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--arrowpanel-color, #f9f9fa);
+  color: var(--media-fg);
 }
 
 .tab-media-info-version {
   font-size: 11px;
-  color: var(--arrowpanel-dimmed, #b1b1b3);
+  color: var(--media-fg-dim);
   margin-bottom: 4px;
 }
 
 .tab-media-info-link {
   font-size: 11px;
-  color: var(--arrowpanel-color, #f9f9fa);
+  color: var(--media-fg);
   text-decoration: underline;
   cursor: pointer;
   width: fit-content;
@@ -364,73 +370,4 @@
 
 .tab-media-info-link:hover {
   opacity: 0.8;
-}
-
-/* ==============================================
-   Light theme support
-   ============================================== */
-@media (prefers-color-scheme: light) {
-  .tab-preview-content-interactive {
-    background: var(--arrowpanel-background, #f9f9fa);
-    border-color: rgba(0, 0, 0, 0.08);
-  }
-
-  .tab-media-title {
-    color: var(--arrowpanel-color, #1c1b22);
-  }
-
-  .tab-media-artist {
-    color: var(--arrowpanel-dimmed, #6a6a6e);
-  }
-
-  .tab-media-control-button {
-    color: var(--arrowpanel-color, #1c1b22);
-  }
-
-  .tab-media-control-button:not(:disabled):not(:active):hover {
-    background: rgba(0, 0, 0, 0.06);
-  }
-
-  .tab-media-control-button:active {
-    background: rgba(0, 0, 0, 0.14);
-  }
-
-  .tab-media-control-playpause {
-    background: var(--arrowpanel-dimmed, #d4d4d8);
-    color: var(--arrowpanel-color, #1c1b22);
-  }
-
-  .tab-media-control-playpause:not(:disabled):not(:active):hover {
-    background: rgba(0, 0, 0, 0.1);
-  }
-
-  .tab-media-slider::-moz-range-track {
-    background: #c0c0c4;
-  }
-
-  .tab-media-slider::-moz-range-progress {
-    background: var(--arrowpanel-color, #1c1b22);
-  }
-
-  .tab-media-slider::-moz-range-thumb {
-    background: var(--arrowpanel-color, #1c1b22);
-    border-color: var(--arrowpanel-background, #f9f9fa);
-  }
-
-  .tab-media-info-popover {
-    background: var(--arrowpanel-background, #ffffff);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-  }
-
-  .tab-media-info-name {
-    color: var(--arrowpanel-color, #1c1b22);
-  }
-
-  .tab-media-info-version {
-    color: var(--arrowpanel-dimmed, #6a6a6e);
-  }
-
-  .tab-media-info-link {
-    color: var(--arrowpanel-color, #1c1b22);
-  }
 }
