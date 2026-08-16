@@ -5,6 +5,13 @@ on:
     tags:
       - 'v*'
 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build'
+        required: true
+        type: string
+
 permissions:
   contents: write
 
@@ -15,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,10 +48,7 @@ jobs:
 
       - name: Build
         env:
-          FXMC_LOG_LEVEL: error
-          FXMC_VERSION: ${{ github.ref_name }}
-          FXMC_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-          FXMC_PROJECT_NAME: FX Media Controller
+          # ... envy
         run: npm run build
 
       - name: Prepare release
@@ -72,17 +78,18 @@ jobs:
         run: |
           cd release
           zip -r \
-            ../fx-media-controller-${GITHUB_REF_NAME}.zip .
+            ../fx-media-controller-${{ inputs.tag || github.ref_name }}.zip .
 
       - name: Generate checksum
         run: |
-          sha256sum fx-media-controller-${GITHUB_REF_NAME}.zip \
-            > fx-media-controller-${GITHUB_REF_NAME}.zip.sha256
+          sha256sum \
+            fx-media-controller-${{ inputs.tag || github.ref_name }}.zip \
+            > fx-media-controller-${{ inputs.tag || github.ref_name }}.zip.sha256
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: |
-            fx-media-controller-${{ github.ref_name }}.zip
-            fx-media-controller-${{ github.ref_name }}.zip.sha256
+            fx-media-controller-${{ inputs.tag || github.ref_name }}.zip
+            fx-media-controller-${{ inputs.tag || github.ref_name }}.zip.sha256
