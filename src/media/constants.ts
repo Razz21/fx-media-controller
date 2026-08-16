@@ -5,6 +5,7 @@ export const ICONS = {
   next: `<path d="M6 5.1a1 1 0 0 1 1.6-.8l8.5 6.7a1.27 1.27 0 0 1 0 2l-8.5 6.7a1 1 0 0 1-1.6-.8V5.1ZM18 4a1 1 0 0 1 1 1v14a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" />`,
   seekBack: `<path  d="M20.25 6.6a1 1 0 0 0-1.6-.8l-7.4 5.8a1.2 1.2 0 0 0 0 1.9l7.4 5.8a1 1 0 0 0 1.6-.8V6.6Zm-7.5 0a1 1 0 0 0-1.6-.8l-7.4 5.8a1.2 1.2 0 0 0 0 1.9l7.4 5.8a1 1 0 0 0 1.6-.8V6.6Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" />`,
   seekFwd: `<path d="M4.5 6.2a1 1 0 0 1 1.62-.78l7.25 5.68a1.15 1.15 0 0 1 0 1.8l-7.25 5.68a1 1 0 0 1-1.62-.78V6.2Zm7.5 0a1 1 0 0 1 1.62-.78l7.25 5.68a1.15 1.15 0 0 1 0 1.8l-7.25 5.68a1 1 0 0 1-1.62-.78V6.2Z" stroke-width="1.5" stroke-linejoin="round" fill="currentColor" />`,
+  info: `<circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.5" fill="none" /><line x1="12" y1="11" x2="12" y2="16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /><circle cx="12" cy="7.75" r="1.1" fill="currentColor" />`,
 };
 
 export const POPUP_ID = 'tab-media-control-popup';

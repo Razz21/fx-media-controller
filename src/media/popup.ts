@@ -28,6 +28,9 @@ export class MediaPopupManager {
   private mouseOverPopup = false;
   private currentDuration = 0;
   private isSeeking = false;
+  private infoButton: XULElement | null = null;
+  private infoPopoverEl: HTMLElement | null = null;
+  private infoPopoverOpen = false;
 
   constructor(window: BrowserWindow) {
     this.window = window;
@@ -223,8 +226,62 @@ export class MediaPopupManager {
     progressDiv.append(currentTimeSpan, slider, totalTimeSpan);
 
     mainDiv.append(metaDiv, controlsDiv, progressDiv);
-    interactiveDiv.appendChild(mainDiv);
+
+    const info = createIconButton(
+      doc,
+      'tab-media-control-button tab-media-info-button',
+      ICONS.info,
+      'About',
+    );
+    info.button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleInfoPopover();
+    });
+
+    const infoPopover = doc.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    ) as HTMLElement;
+    infoPopover.className = 'tab-media-info-popover';
+    infoPopover.hidden = true;
+
+    const infoName = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    infoName.className = 'tab-media-info-name';
+    infoName.textContent = __FXMC_PROJECT_NAME__;
+
+    const infoVersion = doc.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    );
+    infoVersion.className = 'tab-media-info-version';
+    infoVersion.textContent = `Version: ${__FXMC_VERSION__}`;
+
+    const infoLink = doc.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'a',
+    ) as HTMLAnchorElement;
+    infoLink.className = 'tab-media-info-link';
+    infoLink.textContent = 'View on GitHub';
+    infoLink.href = __FXMC_REPO_URL__ || '#';
+    infoLink.addEventListener('mousedown', (e) => e.stopPropagation());
+    if (__FXMC_REPO_URL__) {
+      infoLink.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.window.open(__FXMC_REPO_URL__, '_blank', 'noopener');
+        this.closeInfoPopover();
+      });
+    } else {
+      infoLink.addEventListener('click', (e) => e.preventDefault());
+    }
+
+    infoPopover.append(infoName, infoVersion, infoLink);
+
+    interactiveDiv.append(mainDiv, info.button, infoPopover);
     popup.appendChild(interactiveDiv);
+
+    this.infoButton = info.button;
+    this.infoPopoverEl = infoPopover;
 
     popup.addEventListener('mouseenter', () => {
       logger.debug('[popup] popup mouseenter');
@@ -235,6 +292,13 @@ export class MediaPopupManager {
       logger.debug('[popup] popup mouseleave');
       this.mouseOverPopup = false;
       this.scheduleHide();
+    });
+    popup.addEventListener('click', (e) => {
+      if (!this.infoPopoverOpen) return;
+      const target = e.target as Node;
+      if (this.infoButton?.contains(target)) return;
+      if (this.infoPopoverEl?.contains(target)) return;
+      this.closeInfoPopover();
     });
 
     seekBack.button.addEventListener('click', (e) => {
@@ -323,6 +387,7 @@ export class MediaPopupManager {
   }
 
   private teardownActiveTab(): void {
+    this.closeInfoPopover();
     if (this.state) {
       this.state.mediaState.disableTracking();
       this.state.unsubscribe();
@@ -341,6 +406,26 @@ export class MediaPopupManager {
     this.mouseOverPopup = false;
     this.cancelHide();
     this.isSeeking = false;
+  }
+
+  private toggleInfoPopover(): void {
+    if (this.infoPopoverOpen) {
+      this.closeInfoPopover();
+    } else {
+      this.openInfoPopover();
+    }
+  }
+
+  private openInfoPopover(): void {
+    if (!this.infoPopoverEl) return;
+    this.infoPopoverEl.hidden = false;
+    this.infoPopoverOpen = true;
+  }
+
+  private closeInfoPopover(): void {
+    if (!this.infoPopoverEl) return;
+    this.infoPopoverEl.hidden = true;
+    this.infoPopoverOpen = false;
   }
 
   private updateStructuralUI(state: MediaControllerState): boolean {
@@ -559,6 +644,9 @@ export class MediaPopupManager {
     this.hoveredTab = null;
     this.mouseOverPopup = false;
     this.isSeeking = false;
+    this.infoPopoverOpen = false;
+    this.infoButton = null;
+    this.infoPopoverEl = null;
     this.popup?.remove();
     this.popup = null;
     this.elements = null;
