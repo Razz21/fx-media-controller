@@ -1,6 +1,6 @@
 {
   "name": "fx-media-controller",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Firefox UI enhancements built around Firefox's internal MediaController API.",
   "keywords": [
