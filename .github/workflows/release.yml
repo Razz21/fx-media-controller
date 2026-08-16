@@ -48,7 +48,10 @@ jobs:
 
       - name: Build
         env:
-          # ... envy
+          FXMC_LOG_LEVEL: error
+          FXMC_VERSION: ${{ github.ref_name }}
+          FXMC_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          FXMC_PROJECT_NAME: FX Media Controller
         run: npm run build
 
       - name: Prepare release
