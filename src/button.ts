@@ -6,14 +6,27 @@ import { ICONS } from './media/constants';
 
 const bindings = new WeakMap<HTMLElement, () => void>();
 const svgElements = new WeakMap<HTMLElement, SVGElement>();
+const lastRendered = new WeakMap<
+  HTMLElement,
+  { hidden: boolean; playing: boolean }
+>();
 
 function updateButton(button: HTMLElement, state: MediaControllerState): void {
-  button.hidden = !state.active;
+  const hidden = !state.active;
+  const playing = state.playing;
+
+  const prev = lastRendered.get(button);
+  if (prev && prev.hidden === hidden && prev.playing === playing) {
+    return;
+  }
+  lastRendered.set(button, { hidden, playing });
+
+  button.hidden = hidden;
   const svg = svgElements.get(button);
   if (svg) {
-    svg.innerHTML = state.playing ? ICONS.pause : ICONS.play;
+    svg.innerHTML = playing ? ICONS.pause : ICONS.play;
   } else {
-    button.textContent = state.playing ? '⏸' : '▶';
+    button.textContent = playing ? '⏸' : '▶';
   }
 }
 
@@ -46,7 +59,6 @@ export function createTabPlayPauseButton(tab: BrowserTab): HTMLElement | null {
   if (!audioButton) return null;
 
   const button = createButton(tab.ownerDocument as ChromeDocument);
-  // No text content needed; SVG is used
   button.hidden = true;
 
   button.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -83,6 +95,7 @@ export function destroyTabPlayPauseButton(tab: BrowserTab): void {
   }
 
   svgElements.delete(button);
+  lastRendered.delete(button);
 
   button.remove();
 }

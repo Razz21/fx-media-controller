@@ -11,23 +11,19 @@ export class PositionTracker {
   public pos: MediaPosition | null = null;
   private rafId: number | null = null;
   private isPlaying: boolean = false;
-  // Starts true - mirrors trackingEnabled's default of false in
-  // controller.ts's bindMediaController(). refreshState() now calls
-  // sync()/setPlaying() unconditionally (even while nobody is tracking),
-  // and both gate RAF/push behind this flag - so it must already be true
-  // before the first enableTracking()/disableTracking() cycle, not just
-  // after it, or the RAF loop starts the moment the first real event
-  // arrives regardless of whether any popup was ever opened.
   private paused: boolean = true;
   private onUpdate: (pos: { duration: number; position: number }) => void;
+  private onTick: (pos: { duration: number; position: number }) => void;
   private win: Window;
 
   constructor(
     win: Window,
     onUpdate: (pos: { duration: number; position: number }) => void,
+    onTick: (pos: { duration: number; position: number }) => void,
   ) {
     this.win = win;
     this.onUpdate = onUpdate;
+    this.onTick = onTick;
   }
 
   pause(): void {
@@ -43,12 +39,6 @@ export class PositionTracker {
     this.paused = false;
 
     if (this.pos) {
-      // Real time kept passing while paused even though we stopped
-      // reporting it. Extrapolate the cached position forward by the
-      // elapsed wall-clock time (at the last known playbackRate) before
-      // resuming - same formula as tick() - otherwise the UI shows a
-      // value stale by however long tracking was disabled, then starts
-      // advancing from there instead of from the true current position.
       if (this.isPlaying) {
         const now = this.win.performance.now();
         const elapsed = (now - this.pos.timestamp) / 1000;
@@ -145,7 +135,7 @@ export class PositionTracker {
     currentPos = Math.min(Math.max(currentPos, 0), this.pos.duration);
 
     if (!this.paused) {
-      this.onUpdate({ duration: this.pos.duration, position: currentPos });
+      this.onTick({ duration: this.pos.duration, position: currentPos });
     }
 
     if (this.isPlaying && !this.paused) {

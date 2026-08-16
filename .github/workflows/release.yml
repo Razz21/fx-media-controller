@@ -38,7 +38,12 @@ jobs:
         run: npm run check:deps
 
       - name: Build
-        run: FXMC_LOG_LEVEL=error npm run build
+        env:
+          FXMC_LOG_LEVEL: error
+          FXMC_VERSION: ${{ github.ref_name }}
+          FXMC_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          FXMC_PROJECT_NAME: FX Media Controller
+        run: npm run build
 
       - name: Prepare release
         run: |
