@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-description: Report a bug in the system
+about: Report a bug in the system
 title: '[Bug]: '
 labels:
   - bug
