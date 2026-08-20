@@ -1,5 +1,11 @@
 # fx-media-controller
 
+## 0.2.1
+
+### Patch Changes
+
+- 094db4b: Fixed MediaController.pause() require an argument for FF v154.0
+
 ## 0.2.0
 
 ### Minor Changes
