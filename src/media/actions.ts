@@ -10,7 +10,7 @@ export function toggleMediaController(tab: BrowserTab): void {
   const controller = getActiveController(tab);
   if (!controller) return;
   if (controller.isPlaying) {
-    controller.pause();
+    controller.pause('user');
   } else {
     controller.play();
   }

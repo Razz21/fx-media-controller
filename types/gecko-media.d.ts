@@ -30,6 +30,14 @@ interface PositionStateEvent extends Event {
 
 interface AudioSessionType {}
 
+/**
+ * The reason a chrome caller is pausing the controller. "user" preserves the
+ * existing user-initiated pause; the "system-*" values represent an
+ * audio-focus loss, with "system-transient" being resumable and
+ * "system-permanent" not.
+ */
+type AudioFocusLossReason = 'user' | 'system-transient' | 'system-permanent';
+
 interface MediaController extends EventTarget {
   readonly id: number;
   readonly isActive: boolean;
@@ -54,7 +62,7 @@ interface MediaController extends EventTarget {
 
   focus(): void;
   play(): void;
-  pause(): void;
+  pause(reason: AudioFocusLossReason): void;
   resume(): void;
   stop(): void;
   mute(): void;
