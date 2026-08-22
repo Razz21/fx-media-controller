@@ -1,0 +1,53 @@
+name: Sync Firefox Gecko types
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Gecko types
+        run: npm run gecko:generate
+
+      - name: Check
+        run: npm run check
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/sync-firefox-gecko-types
+          delete-branch: true
+          commit-message: 'chore: sync Firefox Gecko types'
+          title: 'chore: sync Firefox Gecko types'
+          body: |
+            Firefox's MediaController.webidl changed.
+
+            This PR updates the generated TypeScript declarations
+            from the current Firefox main branch.
+
+            Please review the generated diff before merging.
+          labels: |
+            automated
+            dependencies

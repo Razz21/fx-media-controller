@@ -30,67 +30,6 @@ interface PositionStateEvent extends Event {
 
 interface AudioSessionType {}
 
-/**
- * The reason a chrome caller is pausing the controller. "user" preserves the
- * existing user-initiated pause; the "system-*" values represent an
- * audio-focus loss, with "system-transient" being resumable and
- * "system-permanent" not.
- */
-type AudioFocusLossReason = 'user' | 'system-transient' | 'system-permanent';
-
-interface MediaController extends EventTarget {
-  readonly id: number;
-  readonly isActive: boolean;
-  readonly isAudible: boolean;
-  readonly isMuted: boolean;
-  readonly isPlaying: boolean;
-  readonly isAnyMediaBeingControlled: boolean;
-  readonly playbackState: MediaSessionPlaybackState;
-  readonly effectiveAudioSessionType: AudioSessionType;
-  readonly supportedKeys: readonly MediaControlKey[];
-
-  getMetadata(): MediaMetadataInit;
-
-  onactivated: EventHandler;
-  onaudiblechange: EventHandler;
-  ondeactivated: EventHandler;
-  oneffectiveaudiosessiontypechange: EventHandler;
-  onmetadatachange: EventHandler;
-  onplaybackstatechange: EventHandler;
-  onpositionstatechange: EventHandler; // Already present
-  onsupportedkeyschange: EventHandler;
-
-  focus(): void;
-  play(): void;
-  pause(reason: AudioFocusLossReason): void;
-  resume(): void;
-  stop(): void;
-  mute(): void;
-  unmute(): void;
-  prevTrack(): void;
-  nextTrack(): void;
-  seekBackward(seekOffset: number): void;
-  seekForward(seekOffset: number): void;
-  skipAd(): void;
-  seekTo(seekTime: number, fastSeek?: boolean): void;
-}
-
-type MediaControlKey =
-  | 'focus'
-  | 'play'
-  | 'pause'
-  | 'playpause'
-  | 'previoustrack'
-  | 'nexttrack'
-  | 'seekbackward'
-  | 'seekforward'
-  | 'skipad'
-  | 'seekto'
-  | 'stop'
-  | 'mute'
-  | 'unmute'
-  | 'setvolume';
-
 interface MediaControllerEventMap {
   activated: Event;
   audiblechange: Event;
