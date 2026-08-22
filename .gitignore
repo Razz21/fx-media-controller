@@ -31,3 +31,4 @@ docs/superpowers/
 *.njsproj
 *.sln
 *.sw?
+.tmp/
