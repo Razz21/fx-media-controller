@@ -30,6 +30,9 @@ jobs:
       - name: Generate Gecko types
         run: npm run gecko:generate
 
+      - name: Format
+        run: npm run format
+
       - name: Check
         run: npm run check
 
