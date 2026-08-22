@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "check:deps": "knip",
-    "gecko:generate": "tsx scripts/generate-gecko-media.ts",
+    "gecko:generate": "node scripts/generate-gecko-media.ts",
     "gecko:check": "npm run gecko:generate && npm run format && git diff --exit-code -- types/gecko-media.generated.d.ts"
   },
   "devDependencies": {
