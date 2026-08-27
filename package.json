@@ -34,12 +34,12 @@
     "gecko:check": "npm run gecko:generate && npm run format && git diff --exit-code -- types/gecko-media.generated.d.ts"
   },
   "devDependencies": {
-    "@changesets/cli": "^3.0.0",
-    "concurrently": "^10.0.4",
+    "@changesets/cli": "^3.0.1",
+    "concurrently": "^10.0.5",
     "esbuild": "^0.28.2",
     "knip": "^6.32.2",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
+    "oxfmt": "^0.65.0",
+    "oxlint": "^1.80.0",
     "typescript": "^7.0.2",
     "webidl2": "^24.5.0"
   },
