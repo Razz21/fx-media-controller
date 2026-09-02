@@ -70,6 +70,9 @@ jobs:
           cp program/autoconfig.cfg \
             release/
 
+          cp program/chrome.manifest \
+            release/
+
           cp README.md \
             release/
 

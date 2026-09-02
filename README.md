@@ -100,6 +100,7 @@ Close Firefox completely, then extract the release archive. You need:
 ```text
 autoconfig.js
 autoconfig.cfg
+chrome.manifest
 fx-media-controller.js
 fx-media-controller.css
 ```
@@ -144,7 +145,8 @@ Inside the profile, create `chrome/JS/` if it doesn't exist, then:
 <Firefox profile>/
 └── chrome/
     ├── JS/fx-media-controller.js
-    └── fx-media-controller.css
+    ├── fx-media-controller.css
+    └── chrome.manifest
 ```
 
 ### 5. Load the stylesheet
@@ -188,6 +190,7 @@ Close Firefox. Remove:
 <Firefox installation>/defaults/pref/autoconfig.js
 <Firefox profile>/chrome/JS/fx-media-controller.js
 <Firefox profile>/chrome/fx-media-controller.css
+<Firefox profile>/chrome/chrome.manifest
 ```
 
 Remove the pasted styles (or the `@import` line) from `userChrome.css` — don't delete the file itself if it has other content.
